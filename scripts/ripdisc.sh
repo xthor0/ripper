@@ -65,9 +65,16 @@ else
     fi
 fi
 
+# make sure before we proceed that titletrack is a DIGIT
+re='^[0-9]+$'
+if ! [[ ${titletrack} =~ ${re} ]] ; then
+   echo "Whoops - something went wrong. ${titletrack} is either empty or not a number."
+   _exit_err
+fi
+
 echo "Ripping title track ${titletrack} from ${title} with makemkvcon..."
-log=$(mktemp makemkvcon.log.XXXX)
-makemkvcon --progress=-stdout -r --decrypt --directio=true mkv dev:/dev/sr0 ${track} /storage/videos/rips >& ${log}
+log=$(mktemp -t makemkvcon.log.XXXX)
+makemkvcon --progress=-stdout -r --decrypt --directio=true mkv dev:/dev/sr0 ${titletrack} /storage/videos/rips >& ${log}
 if [ $? -eq 0 ]; then
     echo "Rip completed."
     rm -f ${log}
