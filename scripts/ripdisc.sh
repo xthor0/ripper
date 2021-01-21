@@ -4,16 +4,18 @@
 # in order for makemkv (or, makemkvcon, even) to be able to properly detect the title track on scrambled BDROMs,
 # an old version of Java MUST be installed. https://www.oracle.com/java/technologies/javase-downloads.html - get Java SE 8
 
-# TODO: make a list of all this script's dependencies. I'll forget, I know it.
+# tools I installed for this script to work:
+# apt install handbrake-cli makemkv-oss makemkv-bin mediainfo mkvtoolnix jq bc
 
 function _exit_err(){
     # TODO: see if API keys for Pushover are set, and if so, push one over.
+    # spit out the cdrom. may as well.
+    eject sr0
     exit 255
 }
 
 # set handbrake profile info
-# TODO: make this script figure out where that JSON is when we're not relative
-handbrake_preset_file="../handbrake-presets/MKV-HQ.json"
+handbrake_preset_file="$(pwd)/../handbrake-presets/MKV-HQ.json"
 handbrake_preset=$(cat "${handbrake_preset_file}" | jq -r '.PresetList[0].PresetName')
 
 # ensure output directories exist
@@ -126,17 +128,22 @@ log=$(mktemp -t makemkvcon.log.XXXX)
 (makemkvcon --progress=-stdout -r --decrypt --directio=true mkv dev:/dev/sr0 ${titletrack} "${output_dir}" >& ${log}) &
 bgpid=$!
 while [ -d /proc/${bgpid} ]; do
-    job="$(grep ^PRGC ${log} | tail -n1)"
-    jobprog="$(grep ^PRGV ${log} | cut -d \: -f 1 | cut -d \, -f 1)"
-    totalprog="$(grep ^PRGV ${log} | cut -d \: -f 1 | cut -d \, -f 1)"
-    progperc=$(echo "scale=2;(${jobprog} / ${totalprog}) * 100" | bc)
-    echo "Job: ${job} :: PCT Complete: ${progperc}"
+    job="$(grep ^PRGC ${log} | tail -n1 | cut -d , -f 3 | tr -d \")"
+    jobprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 1)"
+    totalprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 1)"
+    progperc=$(echo "scale=2;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
+    tput sc
+    echo -n "${job} :: ${progperc} %"
     sleep 5
+    tput rc
 done
+
+# write a newline, or we'll clobber the last status message
+echo
 
 wait ${bgpid}
 if [ $? -eq 0 ]; then
-    echo "Rip completed."
+    echo "makemkvcon completed successfully."
     rm -f ${log}
 else
     echo "Oops - something went wrong. Take a look at ${log} for more information. Exiting now..."
@@ -144,14 +151,27 @@ else
 fi
 
 # set the title of the disc to match what we got from the XML file
+echo "Adding movie title to mkv metadata..."
 mkvpropedit "${output_dir}/${outputfile}" --edit info --set "title=${title}"
 
 # encode the file with HandBrakeCLI
 # TODO: use mediainfo to determine resolution, and change profile accordingly. Maybe.
-HandBrakeCLI --preset-import-file "${handbrake_preset_file}" -Z "${handbrake_preset}" -i "${output_dir}/${outputfile}" -o "${encode_dir}/${outputfile}"
+echo "Encoding with HandBrake..."
+log=$(mktemp -t handbrake.log.XXXX)
+HandBrakeCLI --preset-import-file "${handbrake_preset_file}" -Z "${handbrake_preset}" -i "${output_dir}/${outputfile}" -o "${encode_dir}/${outputfile}" 2> ${log}
+if [ $? -eq 0 ]; then
+    echo "HandBrake encode successful."
+    rm -f ${log}
+else
+    echo "Error: HandBrake exited unsuccessfully. Check ${log} for more details."
+    _exit_err
+fi
 
 # rename the file using Filebot (makes life easier for Plex)
+echo "Renaming file with FileBot..."
 filebot.sh -rename "${encode_dir}/${outputfile}" --db themoviedb --q "${title}"
 
 # the end
+echo "Movie ${title} has been successfully encoded."
+# TODO: pushover message
 exit 0
