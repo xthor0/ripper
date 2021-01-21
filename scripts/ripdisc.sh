@@ -42,7 +42,7 @@ if [ $? -eq 0 ]; then
     # BDROM mounted successfully
     test -f /media/cdrom0/BDMV/META/DL/bdmt_eng.xml
     if [ $? -eq 0 ]; then
-        title=$(cat /media/cdrom0/BDMV/META/DL/bdmt_eng.xml | grep di:name | cut -d \> -f 2 | cut -d \< -f 1 | cut -d \- -f 1)
+        title=$(cat /media/cdrom0/BDMV/META/DL/bdmt_eng.xml | grep di:name | cut -d \> -f 2 | cut -d \< -f 1 | cut -d \- -f 1 | xargs)
         echo "Title retrieved from BDROM XML: ${title}"
     else
         echo "bdmt_eng.xml does not exist."
@@ -76,7 +76,7 @@ else
 fi
 
 # let's see if Java was able to determine what the title track of this disc is.
-grep -q FPL_MainFeature ${discinfo}
+grep -q FPL_MainFeature "${discinfo}"
 if [ $? -eq 0 ]; then
     # if this check passes, it means that Java was able to properly determine the correct feature track
     titletrack=$(grep '^TINFO:.*27.*FPL_MainFeature' "${discinfo}" | cut -d : -f 2 | cut -d , -f 1)
