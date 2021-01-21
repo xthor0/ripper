@@ -4,6 +4,8 @@
 # in order for makemkv (or, makemkvcon, even) to be able to properly detect the title track on scrambled BDROMs,
 # an old version of Java MUST be installed. https://www.oracle.com/java/technologies/javase-downloads.html - get Java SE 8
 
+# TODO: make a list of all this script's dependencies. I'll forget, I know it.
+
 function _exit_err(){
     # TODO: see if API keys for Pushover are set, and if so, push one over.
     exit 255
@@ -65,7 +67,7 @@ if [ -z "$title" ]; then
 	_exit_err
 fi
 
-# save the discinfo file and then delete it (for debugging purposes)
+# save the disc info we got from makemkv, but named so we can reference it
 discinfo_backup="${HOME}/discinfo/${title}.txt"
 if [ ! -f "${discinfo_backup}" ]; then
 	discinfo_backup="${HOME}/discinfo/${title}.txt"
@@ -109,9 +111,30 @@ fi
 # get the output filename
 outputfile=$(grep ^TINFO:${titletrack},27,0, "${discinfo}" | cut -d \" -f 2)
 
+# make sure we're not going to clobber a file that already exists
+test -f "${output_dir}/${outputfile}"
+if [ $? -eq 0 ]; then
+    echo "${output_dir}/${outputfile} already exists. Won't clobber what you've already ripped."
+    _exit_err
+fi
+
+# TODO: if the encoded target already exists, we should skip it too, maybe?
+
+# start extraction with makemkv
 echo "Ripping title track ${titletrack} to ${outputfile} with makemkvcon..."
 log=$(mktemp -t makemkvcon.log.XXXX)
-makemkvcon --progress=-stdout -r --decrypt --directio=true mkv dev:/dev/sr0 ${titletrack} "${output_dir}" >& ${log}
+(makemkvcon --progress=-stdout -r --decrypt --directio=true mkv dev:/dev/sr0 ${titletrack} "${output_dir}" >& ${log}) &
+bgpid=$!
+while [ -d /proc/${bgpid} ]; do
+    job="$(grep ^PRGC ${log} | tail -n1)"
+    jobprog="$(grep ^PRGV ${log} | cut -d \: -f 1 | cut -d \, -f 1)"
+    totalprog="$(grep ^PRGV ${log} | cut -d \: -f 1 | cut -d \, -f 1)"
+    progperc=$(echo "scale=2;(${jobprog} / ${totalprog}) * 100" | bc)
+    echo "Job: ${job} :: PCT Complete: ${progperc}"
+    sleep 5
+done
+
+wait ${bgpid}
 if [ $? -eq 0 ]; then
     echo "Rip completed."
     rm -f ${log}
@@ -123,12 +146,12 @@ fi
 # set the title of the disc to match what we got from the XML file
 mkvpropedit "${output_dir}/${outputfile}" --edit info --set "title=${title}"
 
-# rename the file using Filebot (makes life easier for Plex)
-filebot.sh -rename "${output_dir}/${outputfile}" --db themoviedb --q "${title}"
-
 # encode the file with HandBrakeCLI
 # TODO: use mediainfo to determine resolution, and change profile accordingly. Maybe.
 HandBrakeCLI --preset-import-file "${handbrake_preset_file}" -Z "${handbrake_preset}" -i "${output_dir}/${outputfile}" -o "${encode_dir}/${outputfile}"
+
+# rename the file using Filebot (makes life easier for Plex)
+filebot.sh -rename "${encode_dir}/${outputfile}" --db themoviedb --q "${title}"
 
 # the end
 exit 0
