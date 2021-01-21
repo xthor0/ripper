@@ -30,14 +30,15 @@ done
 # thing is, I'm not sure I care - almost everything I own is BDROM.
 
 # dump the disc info using makemkv to a temp file
-echo "Scanning disc for title, please wait..."
+echo "Scanning disc with makemkv, please wait..."
 discinfo=$(mktemp -p "${discinfo_output_dir}" discinfo.tempfile.XXXXX)
 makemkvcon --progress=-stdout -r info dev:/dev/sr0 > $discinfo
 
 # if this is a BDROM, we can scrape an xml file and get a human-readable title. Neat!
+echo "Checking for BDROM XML..."
 mount /dev/sr0
 mountpoint -q /media/cdrom0
-if [ $? -eq 0 ]l then
+if [ $? -eq 0 ]; then
     # BDROM mounted successfully
     test -f /media/cdrom0/BDMV/META/DL/bdmt_eng.xml
     if [ $? -eq 0 ]; then
@@ -125,8 +126,8 @@ mkvpropedit "${output_dir}/${outputfile}" --edit info --set "title=${title}"
 # rename the file using Filebot (makes life easier for Plex)
 filebot.sh -rename "${output_dir}/${outputfile}" --db themoviedb --q "${title}"
 
-# TODO: HandBrakeCLI here
-# don't forget to change things like quality, I should use mediainfo to determine DVD, BDROM, or 4k
+# encode the file with HandBrakeCLI
+# TODO: use mediainfo to determine resolution, and change profile accordingly. Maybe.
 HandBrakeCLI --preset-import-file "${handbrake_preset_file}" -Z "${handbrake_preset}" -i "${output_dir}/${outputfile}" -o "${encode_dir}/${outputfile}"
 
 # the end
