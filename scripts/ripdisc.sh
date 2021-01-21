@@ -9,10 +9,16 @@ function _exit_err(){
     exit 255
 }
 
+# set handbrake profile info
+# TODO: make this script figure out where that JSON is when we're not relative
+handbrake_preset_file="../handbrake-presets/MKV-HQ.json"
+handbrake_preset=$(cat "${handbrake_preset_file}" | jq -r '.PresetList[0].PresetName')
+
 # ensure output directories exist
 discinfo_output_dir="${HOME}/discinfo"
 output_dir=/storage/videos/rips
-for directory in "${discinfo_output_dir}" "${output_dir}"; do
+encode_dir=/storage/videos/encoded
+for directory in "${discinfo_output_dir}" "${output_dir}" "${encode_dir}"; do
     if [ ! -d "${directory}" ]; then
         echo "${directory} does not exist -- creating."
         mkdir "${directory}"
@@ -113,12 +119,15 @@ else
     _exit_err
 fi
 
-# TODO: I'd love to automate Filebot, but the names that come off these discs... are they gonna be suitable for a filebot
-# lookup?
+# set the title of the disc to match what we got from the XML file
+mkvpropedit "${output_dir}/${outputfile}" --edit info --set "title=${title}"
+
+# rename the file using Filebot (makes life easier for Plex)
 filebot.sh -rename "${output_dir}/${outputfile}" --db themoviedb --q "${title}"
 
 # TODO: HandBrakeCLI here
 # don't forget to change things like quality, I should use mediainfo to determine DVD, BDROM, or 4k
+HandBrakeCLI --preset-import-file "${handbrake_preset_file}" -Z "${handbrake_preset}" -i "${output_dir}/${outputfile}" -o "${encode_dir}/${outputfile}"
 
 # the end
 exit 0
