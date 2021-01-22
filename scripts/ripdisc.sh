@@ -132,7 +132,7 @@ bgpid=$!
 while [ -d /proc/${bgpid} ]; do
     job="$(grep ^PRGC ${log} | tail -n1 | cut -d , -f 3 | tr -d '"')"
     jobprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 1)"
-    totalprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 1)"
+    totalprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 3)"
     progperc=$(echo "scale=2;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
     tput sc
     tput el
