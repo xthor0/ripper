@@ -5,24 +5,35 @@
 # an old version of Java MUST be installed. https://www.oracle.com/java/technologies/javase-downloads.html - get Java SE 8
 
 # tools I installed for this script to work:
-# apt install handbrake-cli makemkv-oss makemkv-bin mediainfo mkvtoolnix jq bc
+# apt install handbrake-cli makemkv-oss makemkv-bin mediainfo mkvtoolnix jq bc curl
+
+# TODO: https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_master/setup/51-automedia.rules
+# create the udev files in /etc/udev/rules.d/
+# end goal: This script kicks off automatically when I drop a disc in the drive. I feel like I'm SUPER close!
+
+function pushover_msg() {
+    test -f ${HOME}/.pushover-api-keys
+    if [ $? -eq 0 ]; then
+        . ${HOME}/.pushover-api-keys
+        curl -s \
+            --form-string "token=${apitoken}" --form-string "user=${usertoken}" --form-string "message=Notification: $*" https://api.pushover.net/1/messages.json
+    else
+        echo "No pushover keys found in ~/.pushover-api-keys - can't send a message."
+    fi
+}
 
 function _exit_err(){
     # TODO: see if API keys for Pushover are set, and if so, push one over.
-    # spit out the cdrom. may as well.
-    eject sr0
+    pushover_msg "Encode failed, see logs."
     exit 255
 }
-
-# set handbrake profile info
-handbrake_preset_file="$(pwd)/../handbrake-presets/MKV-HQ.json"
-handbrake_preset=$(cat "${handbrake_preset_file}" | jq -r '.PresetList[0].PresetName')
 
 # ensure output directories exist
 discinfo_output_dir="${HOME}/discinfo"
 output_dir=/storage/videos/rips
 encode_dir=/storage/videos/encoded
-for directory in "${discinfo_output_dir}" "${output_dir}" "${encode_dir}"; do
+completed_dir=/storage/videos/completed
+for directory in "${discinfo_output_dir}" "${output_dir}" "${encode_dir}" "${completed_dir}"; do
     if [ ! -d "${directory}" ]; then
         echo "${directory} does not exist -- creating."
         mkdir "${directory}"
@@ -150,15 +161,24 @@ else
     _exit_err
 fi
 
-# set the title of the disc to match what we got from the XML file
+# rename the file using Filebot (makes life easier for Plex)
+echo "Renaming file with FileBot..."
+filebot -rename "${output_dir}/${outputfile}" --db themoviedb --q "${title}"
+
+# set the output file metadata title to match what we got from filebot. The metadata can be weird.
+echo "Determining how filebot named the file..."
+newfile="$(ls -Art "${output_dir}" | tail -n1)"
+newfilename="$(basename "${newfile}")"
+newtitle="$(basename "${newfile}" .mkv)"
+echo "New title: ${newtitle}"
 echo "Adding movie title to mkv metadata..."
-mkvpropedit "${output_dir}/${outputfile}" --edit info --set "title=${title}"
+mkvpropedit "${newfile}" --edit info --set "title=${newtitle}"
 
 # encode the file with HandBrakeCLI
 # TODO: use mediainfo to determine resolution, and change profile accordingly. Maybe.
 echo "Encoding with HandBrake..."
 log=$(mktemp -t handbrake.log.XXXX)
-HandBrakeCLI --preset-import-file "${handbrake_preset_file}" -Z "${handbrake_preset}" -i "${output_dir}/${outputfile}" -o "${encode_dir}/${outputfile}" 2> ${log}
+HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 22 -i "${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}
@@ -167,11 +187,10 @@ else
     _exit_err
 fi
 
-# rename the file using Filebot (makes life easier for Plex)
-echo "Renaming file with FileBot..."
-filebot.sh -rename "${encode_dir}/${outputfile}" --db themoviedb --q "${title}"
+# move original source to completed dir. can be deleted later, but allows a re-encode without a re-rip, which is nice.
+mv "${newfile}" "${completed_dir}"
 
 # the end
 echo "Movie ${title} has been successfully encoded."
-# TODO: pushover message
+pushover_msg "Movie ${title} has been successfully encoded."
 exit 0

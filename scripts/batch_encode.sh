@@ -5,10 +5,6 @@ startDate=$(date)
 # output dir for encoded files
 encode_dir=/storage/videos/encoded
 
-# set handbrake profile info
-handbrake_preset_file="/home/xthor/git/ripper/handbrake-presets/MKV-HQ.json"
-handbrake_preset=$(cat "${handbrake_preset_file}" | jq -r '.PresetList[0].PresetName')
-
 log=$(mktemp -t makemkvcon.log.XXXX)
 find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	newfile=$(basename "$inputfile" .mkv)
@@ -20,7 +16,7 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	
 	echo "Encoding ${inputfile} to ${output_file}..."
 	start=$(date +%s)
-	echo | HandBrakeCLI --preset-import-file "${handbrake_preset_file}" -Z "${handbrake_preset}" -i "${inputfile}" -o "${output_file}" 2> ${log}
+	echo | HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 22 -i "${inputfile}" -o "${output_file}" 2> ${log}
     if [ $? -eq 0 ]; then
         rm -f ${log}
     else
@@ -32,5 +28,14 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 done
 
 endDate=$(date)
+
+# pushover message
+test -f ${HOME}/.pushover-api-keys
+if [ $? -eq 0 ]; then
+    . ${HOME}/.pushover-api-keys
+    curl -s --form-string "token=${apitoken}" --form-string "user=${usertoken}" --form-string "message=Notification: Batch HandBrake job completed. :: Start: ${startDate} -- End: ${endDate}" https://api.pushover.net/1/messages.json
+fi
+
+echo "All done!"
 
 exit 0
