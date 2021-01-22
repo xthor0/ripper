@@ -144,6 +144,8 @@ while [ -d /proc/${bgpid} ]; do
     totalprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 1)"
     progperc=$(echo "scale=2;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
     tput sc
+    echo "Debugging: jobprog = ${jobprog} :: totalprog = ${totalprog} :: progperc = ${progperc}"
+    tput el
     echo -n "${job} :: ${progperc} %"
     sleep 5
     tput rc
