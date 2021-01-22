@@ -124,15 +124,6 @@ fi
 # get the output filename
 outputfile=$(grep ^TINFO:${titletrack},27,0, "${discinfo}" | cut -d \" -f 2)
 
-# make sure we're not going to clobber a file that already exists
-test -f "${output_dir}/${outputfile}"
-if [ $? -eq 0 ]; then
-    echo "${output_dir}/${outputfile} already exists. Won't clobber what you've already ripped."
-    _exit_err
-fi
-
-# TODO: if the encoded target already exists, we should skip it too, maybe?
-
 # start extraction with makemkv
 echo "Ripping title track ${titletrack} to ${outputfile} with makemkvcon..."
 log=$(mktemp -t makemkvcon.log.XXXX)
@@ -144,6 +135,7 @@ while [ -d /proc/${bgpid} ]; do
     totalprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 1)"
     progperc=$(echo "scale=2;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
     tput sc
+    tput el
     echo "Debugging: jobprog = ${jobprog} :: totalprog = ${totalprog} :: progperc = ${progperc}"
     tput el
     echo -n "${job} :: ${progperc} %"
@@ -166,26 +158,39 @@ fi
 # rename the file using Filebot (makes life easier for Plex)
 echo "Renaming file with FileBot..."
 filebot -rename "${output_dir}/${outputfile}" --db themoviedb --q "${title}"
+if [ $? -ne 0 ]; then
+    exitmsg="Something went wrong with filebot - exiting."
+    echo ${exitmsg}
+    pushover_msg ${exitmsg}
+    _exit_err
+fi
 
 # set the output file metadata title to match what we got from filebot. The metadata can be weird.
 echo "Determining how filebot named the file..."
 newfile="$(ls -Art "${output_dir}" | tail -n1)"
-newfilename="$(basename "${newfile}")"
 newtitle="$(basename "${newfile}" .mkv)"
 echo "New title: ${newtitle}"
 echo "Adding movie title to mkv metadata..."
-mkvpropedit "${newfile}" --edit info --set "title=${newtitle}"
+mkvpropedit "${output_dir}/${newfile}" --edit info --set "title=${newtitle}"
+if [ $? -ne 0 ]; then
+    exitmsg="Something went wrong with mkvpropedit - exiting."
+    echo ${exitmsg}
+    pushover_msg ${exitmsg}
+    _exit_err
+fi
 
 # encode the file with HandBrakeCLI
 # TODO: use mediainfo to determine resolution, and change profile accordingly. Maybe.
 echo "Encoding with HandBrake..."
 log=$(mktemp -t handbrake.log.XXXX)
-HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 21 -i "${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
+HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 21 -i "${output_dir}/${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}
 else
-    echo "Error: HandBrake exited unsuccessfully. Check ${log} for more details."
+    exitmsg="Error: HandBrake exited unsuccessfully. Check ${log} for more details."
+    echo ${exitmsg}
+    pushover_msg ${exitmsg}
     _exit_err
 fi
 
@@ -193,6 +198,7 @@ fi
 mv "${newfile}" "${completed_dir}"
 
 # the end
-echo "Movie ${title} has been successfully encoded."
-pushover_msg "Movie ${title} has been successfully encoded."
+exitmsg="Movie ${title} has been successfully encoded."
+echo ${exitmsg}
+pushover_msg ${exitmsg}
 exit 0
