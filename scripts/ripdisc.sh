@@ -127,7 +127,7 @@ outputfile=$(grep ^TINFO:${titletrack},27,0, "${discinfo}" | cut -d \" -f 2)
 # start extraction with makemkv
 echo "Ripping title track ${titletrack} to ${outputfile} with makemkvcon..."
 log=$(mktemp -t makemkvcon.log.XXXX)
-makemkvcon --progress=-stdout -r --decrypt --directio=true mkv dev:/dev/sr0 ${titletrack} "${output_dir}" > ${log} 2>&1 &
+( makemkvcon --progress=-stdout -r --decrypt --directio=true mkv dev:/dev/sr0 ${titletrack} "${output_dir}" >& ${log} ) &
 bgpid=$!
 while [ -d /proc/${bgpid} ]; do
     job="$(grep ^PRGC ${log} | tail -n1 | cut -d , -f 3 | tr -d '"')"
