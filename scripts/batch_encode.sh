@@ -16,7 +16,7 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	
 	echo "Encoding ${inputfile} to ${output_file}..."
 	start=$(date +%s)
-	echo | HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 22 -i "${inputfile}" -o "${output_file}" 2> ${log}
+	echo | HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 21 -i "${inputfile}" -o "${output_file}" 2> ${log}
     if [ $? -eq 0 ]; then
         rm -f ${log}
     else

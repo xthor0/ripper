@@ -178,7 +178,7 @@ mkvpropedit "${newfile}" --edit info --set "title=${newtitle}"
 # TODO: use mediainfo to determine resolution, and change profile accordingly. Maybe.
 echo "Encoding with HandBrake..."
 log=$(mktemp -t handbrake.log.XXXX)
-HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 22 -i "${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
+HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 21 -i "${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}
