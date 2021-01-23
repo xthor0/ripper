@@ -60,7 +60,7 @@ if [ $? -eq 0 ]; then
         # save the XML - it's failing on some discs and will help me debug
         xmltemp=$(mktemp -p "${discinfo_output_dir}" bdmtxml.temp.XXXX)
         cp /media/cdrom0/BDMV/META/DL/bdmt_eng.xml ${xmltemp}
-        title=$(cat /media/cdrom0/BDMV/META/DL/bdmt_eng.xml | grep di:name | cut -d \> -f 2 | cut -d \< -f 1 | cut -d \- -f 1 | xargs)
+        title=$(cat /media/cdrom0/BDMV/META/DL/bdmt_eng.xml | grep di:name | cut -d \> -f 2 | cut -d \< -f 1 | cut -d \- -f 1 | tr -d [:cntrl:])
         echo "Title retrieved from BDROM XML: ${title}"
     else
         echo "bdmt_eng.xml does not exist."
