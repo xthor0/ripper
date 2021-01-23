@@ -57,6 +57,9 @@ if [ $? -eq 0 ]; then
     # BDROM mounted successfully
     test -f /media/cdrom0/BDMV/META/DL/bdmt_eng.xml
     if [ $? -eq 0 ]; then
+        # save the XML - it's failing on some discs and will help me debug
+        xmltemp=$(mktemp -p "${discinfo_output_dir}" bdmtxml.temp.XXXX)
+        cp /media/cdrom0/BDMV/META/DL/bdmt_eng.xml ${xmltemp}
         title=$(cat /media/cdrom0/BDMV/META/DL/bdmt_eng.xml | grep di:name | cut -d \> -f 2 | cut -d \< -f 1 | cut -d \- -f 1 | xargs)
         echo "Title retrieved from BDROM XML: ${title}"
     else
@@ -88,6 +91,15 @@ if [ ! -f "${discinfo_backup}" ]; then
     discinfo="${discinfo_backup}"
 else
     echo "${discinfo_backup} already exists, keeping temp file ${discinfo}."
+fi
+
+# move the bdxml temp to a real file
+bdmtxml="${HOME}/discinfo/${title}.xml"
+if [ ! -f "${bdmtxml}" ]; then
+    mv ${xmltemp} "${bdmtxml}"
+    echo "BDMT XML saved to ${bdmtxml}"
+else
+    echo "BDMT XML saved to ${xmltemp}"
 fi
 
 # let's see if Java was able to determine what the title track of this disc is.
@@ -133,7 +145,7 @@ while [ -d /proc/${bgpid} ]; do
     job="$(grep ^PRGC ${log} | tail -n1 | cut -d , -f 3 | tr -d '"')"
     jobprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 1)"
     totalprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 3)"
-    progperc=$(echo "scale=2;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
+    progperc=$(echo "scale=4;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
     tput sc
     tput el
     echo "Debugging: jobprog = ${jobprog} :: totalprog = ${totalprog} :: progperc = ${progperc}"
