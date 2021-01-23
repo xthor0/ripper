@@ -199,7 +199,7 @@ fi
 # TODO: use mediainfo to determine resolution, and change quality accordingly. Or maybe I won't, because 21 seems to work great for 1080p & 4k, it's really just TV shows and DVDs that might need a tweak. :shrug:
 echo "Encoding with HandBrake..."
 log=$(mktemp -t handbrake.log.XXXX)
-HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 21 -i "${output_dir}/${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
+HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x265 --encoder-preset veryfast -q 21 -i "${output_dir}/${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}
