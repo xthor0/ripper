@@ -75,6 +75,7 @@ if [ -z "$title" ]; then
     # use what we can get from makemkv
     echo "Disc title is not set, retrieving from makemkv output..."
     title=$(cat ${discinfo} | grep '^DRV:0' | cut -d \, -f 6 | tr -d \")
+    echo "Title from makemkv: ${title}"
 fi
 
 # if title is STILL not set, exit
@@ -113,8 +114,9 @@ else
     # On discs like this, the only way forward is either the Windows PowerDVD hack here - https://www.makemkv.com/forum/viewtopic.php?t=16251
     # or, checking the forums for the correct playlist.
     # so, this is a quick n' dirty hack to make sure we're not ripping a disc that might fill up my hard drive.
-    echo "Java was unable to locate the title track of this disc."
+    echo "Java was unable to locate the title track of this disc. Determining which title to rip by length only."
     trackcount=$(grep -c ^TINFO:.*,27,0, "${discinfo}")
+    echo "Found ${trackcount} tracks on this disc"
     if [ ${trackcount} -gt 100 ]; then
         echo "Sorry, this disc has more than 100 tracks, playlist obfuscation may be going on."
         echo "You should rip this disc manually and make sure it is what it purports to be."
@@ -147,8 +149,8 @@ while [ -d /proc/${bgpid} ]; do
     totalprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 3)"
     progperc=$(echo "scale=4;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
     tput sc
-    tput el
-    echo "Debugging: jobprog = ${jobprog} :: totalprog = ${totalprog} :: progperc = ${progperc}"
+    #tput el
+    #echo "Debugging: jobprog = ${jobprog} :: totalprog = ${totalprog} :: progperc = ${progperc}"
     tput el
     echo -n "${job} :: ${progperc} %"
     sleep 5
@@ -163,7 +165,9 @@ if [ $? -eq 0 ]; then
     echo "makemkvcon completed successfully."
     rm -f ${log}
 else
-    echo "Oops - something went wrong. Take a look at ${log} for more information. Exiting now..."
+    exitmsg="Failure: makemkvcon exited with a non-zero status. Take a look at ${log} for more information. Exiting now..."
+    echo ${exitmsg}
+    pushover_msg $exitmsg
     _exit_err
 fi
 
@@ -171,7 +175,7 @@ fi
 echo "Renaming file with FileBot..."
 filebot -rename "${output_dir}/${outputfile}" --db themoviedb --q "${title}"
 if [ $? -ne 0 ]; then
-    exitmsg="Something went wrong with filebot - exiting."
+    exitmsg="Failure: Something went wrong with filebot - exiting."
     echo ${exitmsg}
     pushover_msg ${exitmsg}
     _exit_err
@@ -192,7 +196,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # encode the file with HandBrakeCLI
-# TODO: use mediainfo to determine resolution, and change profile accordingly. Maybe.
+# TODO: use mediainfo to determine resolution, and change quality accordingly. Or maybe I won't, because 21 seems to work great for 1080p & 4k, it's really just TV shows and DVDs that might need a tweak. :shrug:
 echo "Encoding with HandBrake..."
 log=$(mktemp -t handbrake.log.XXXX)
 HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x264 --encoder-preset veryfast -q 21 -i "${output_dir}/${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
