@@ -5,7 +5,10 @@
 # an old version of Java MUST be installed. https://www.oracle.com/java/technologies/javase-downloads.html - get Java SE 8
 
 # tools I installed for this script to work:
-# apt install handbrake-cli makemkv-oss makemkv-bin mediainfo mkvtoolnix jq bc curl
+# apt install makemkv-oss makemkv-bin mediainfo mkvtoolnix jq bc curl flatpak
+
+# handbrake must be installed via flatpak or QSV doesn't work right
+# https://handbrake.fr/docs/en/1.3.0/get-handbrake/download-and-install.html
 
 # TODO: https://github.com/automatic-ripping-machine/automatic-ripping-machine/blob/v2_master/setup/51-automedia.rules
 # create the udev files in /etc/udev/rules.d/
@@ -185,9 +188,10 @@ fi
 echo "Determining how filebot named the file..."
 newfile="$(ls -Art "${output_dir}" | tail -n1)"
 newtitle="$(basename "${newfile}" .mkv)"
+newfile_name="${output_dir}/${newfile}"
 echo "New title: ${newtitle}"
 echo "Adding movie title to mkv metadata..."
-mkvpropedit "${output_dir}/${newfile}" --edit info --set "title=${newtitle}"
+mkvpropedit "${newfile_name}" --edit info --set "title=${newtitle}"
 if [ $? -ne 0 ]; then
     exitmsg="Something went wrong with mkvpropedit - exiting."
     echo ${exitmsg}
@@ -195,11 +199,19 @@ if [ $? -ne 0 ]; then
     _exit_err
 fi
 
+# use mediainfo to determine resolution, and change encoder accordingly. 
+# 1080 / 720: qsv_h264 (it's way faster)
+# 3840 (4k): qsv_h265 (takes longer, but saves some disk space)
+widthdigit=$(mediainfo "${newfile_name}" | awk '{ print $3 }')
+case ${widthdigit} in
+    3) encoder="qsv_h265";;
+    *) encoder="qsv_h264";;
+esac
+
 # encode the file with HandBrakeCLI
-# TODO: use mediainfo to determine resolution, and change quality accordingly. Or maybe I won't, because 21 seems to work great for 1080p & 4k, it's really just TV shows and DVDs that might need a tweak. :shrug:
-echo "Encoding with HandBrake..."
+echo "Encoding with HandBrake (using ${encoder})..."
 log=$(mktemp -t handbrake.log.XXXX)
-HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x265 --encoder-preset veryfast -q 21 -i "${output_dir}/${newfile}" -o "${encode_dir}/${newfilename}" 2> ${log}
+flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -E ac3 -B 384 -6 5point1 -e ${encoder} --encoder-preset speed -q 21 -i "${newfile_name}" -o "${encode_dir}/${newfilename}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}

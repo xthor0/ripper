@@ -14,9 +14,19 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 		continue
 	fi
 	
-	echo "Encoding ${inputfile} to ${output_file}..."
-	start=$(date +%s)
-	echo | HandBrakeCLI -m -E ac3 -B 384 -6 5point1 -e x265 --encoder-preset veryfast -q 21 -i "${inputfile}" -o "${output_file}" 2> ${log}
+	# use mediainfo to determine resolution, and change encoder accordingly. 
+	# 1080 / 720: qsv_h264 (it's way faster)
+	# 3840 (4k): qsv_h265 (takes longer, but saves some disk space)
+	widthdigit=$(mediainfo "${inputfile}" | awk '{ print $3 }')
+	case ${widthdigit} in
+		3) encoder="qsv_h265";;
+		*) encoder="qsv_h264";;
+	esac
+
+	# encode the file with HandBrakeCLI
+	echo "Encoding with HandBrake (using ${encoder})..."
+	log=$(mktemp -t handbrake.log.XXXX)
+	flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -E ac3 -B 384 -6 5point1 -e ${encoder} --encoder-preset speed -q 21 -i "${inputfile}" -o "${output_file}" 2> ${log}
     if [ $? -eq 0 ]; then
         rm -f ${log}
     else
