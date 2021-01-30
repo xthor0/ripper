@@ -146,18 +146,27 @@ echo "Ripping title track ${titletrack} to ${outputfile} with makemkvcon..."
 log=$(mktemp -t makemkvcon.log.XXXX)
 ( makemkvcon --progress=-stdout -r --decrypt --directio=true mkv dev:/dev/sr0 ${titletrack} "${output_dir}" >& ${log} ) &
 bgpid=$!
+
+# this is a much nicer progress bar than anything makemkvcon gives us, unfortunately...
 while [ -d /proc/${bgpid} ]; do
     job="$(grep ^PRGC ${log} | tail -n1 | cut -d , -f 3 | tr -d '"')"
     jobprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 1)"
     totalprog="$(grep ^PRGV ${log} | tail -n1 | cut -d \: -f 2 | cut -d \, -f 3)"
-    progperc=$(echo "scale=4;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
-    tput sc
-    #tput el
-    #echo "Debugging: jobprog = ${jobprog} :: totalprog = ${totalprog} :: progperc = ${progperc}"
-    tput el
-    echo -n "${job} :: ${progperc} %"
-    sleep 5
-    tput rc
+
+    # we need to make sure jobprog/totalprog are digits - otherwise, bc bitches
+    if [[ ${jobprog} =~ ${re} ]] ; then
+        progperc=$(echo "scale=4;(${jobprog} / ${totalprog}) * 100" | bc | head -c-3)
+        tput sc
+        #tput el
+        #echo "Debugging: jobprog = ${jobprog} :: totalprog = ${totalprog} :: progperc = ${progperc}"
+        tput el
+        echo -n "${job} :: ${progperc} %"
+        sleep 5
+        tput rc
+    else
+        # let's hope 10 seconds does the trick...
+        sleep 10
+    fi
 done
 
 # write a newline, or we'll clobber the last status message
@@ -211,7 +220,7 @@ esac
 # encode the file with HandBrakeCLI
 echo "Encoding with HandBrake (using ${encoder})..."
 log=$(mktemp -t handbrake.log.XXXX)
-flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -E ac3 -B 384 -6 5point1 -e ${encoder} --encoder-preset speed -q 21 -i "${newfile_name}" -o "${encode_dir}/${newfile_name}" 2> ${log}
+flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -E ac3 -B 384 -6 5point1 -e ${encoder} --encoder-preset speed -q 21 -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}
