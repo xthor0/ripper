@@ -172,8 +172,12 @@ done
 # write a newline, or we'll clobber the last status message
 echo
 
+# pretty sure that this is redundant, but what the hell
 wait ${bgpid}
-if [ $? -eq 0 ]; then
+
+# fun - either makemkvcon doesn't exit with a non-zero status, or $? does NOT in fact have the last exit code. Can't tell.
+# either way, a failing BDROM drive would routinely cause makemkvcon to fail. So I guess we can't rely on exit statuses...
+if [ -f "${output_dir}/${outputfile}" ]; then
     echo "makemkvcon completed successfully."
     rm -f ${log}
 else
