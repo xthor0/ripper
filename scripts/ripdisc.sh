@@ -199,8 +199,9 @@ newfile="$(ls -Art "${output_dir}" | tail -n1)"
 newtitle="$(basename "${newfile}" .mkv)"
 newfile_name="${output_dir}/${newfile}"
 echo "New title: ${newtitle}"
-echo "Adding movie title to mkv metadata..."
-mkvpropedit "${newfile_name}" --edit info --set "title=${newtitle}"
+echo "Clearing mkv metadata (which can confuse Plex)..."
+#mkvpropedit "${newfile_name}" --edit info --set "title=${newtitle}"
+mkvpropedit "${newfile_name}" -d title
 if [ $? -ne 0 ]; then
     exitmsg="Something went wrong with mkvpropedit - exiting."
     echo ${exitmsg}

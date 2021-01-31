@@ -24,7 +24,9 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	esac
 
 	# encode the file with HandBrakeCLI
-	echo "Encoding with HandBrake (using ${encoder})..."
+	echo "Source: ${inputfile}"
+	echo "Target: ${output_file}"
+	echo "Encoder: ${encoder}"
 	log=$(mktemp -t handbrake.log.XXXX)
 	echo | flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -E ac3 -B 384 -6 5point1 -e ${encoder} --encoder-preset speed -q 21 -i "${inputfile}" -o "${output_file}" 2> ${log}
     if [ $? -eq 0 ]; then
