@@ -216,7 +216,7 @@ fi
 # use mediainfo to determine resolution, and change encoder accordingly. 
 # 1080 / 720: qsv_h264 (it's way faster)
 # 3840 (4k): qsv_h265 (takes longer, but saves some disk space)
-widthdigit=$(mediainfo "${newfile_name}" | awk '{ print $3 }')
+widthdigit=$(mediainfo "${newfile_name}" | grep ^Width | awk '{ print $3 }')
 case ${widthdigit} in
     3) encoder="qsv_h265";;
     *) encoder="qsv_h264";;
