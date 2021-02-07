@@ -237,7 +237,7 @@ else
 fi
 
 # move original source to completed dir. can be deleted later, but allows a re-encode without a re-rip, which is nice.
-mv "${newfile}" "${completed_dir}"
+mv "${newfile_name}" "${completed_dir}"
 
 # the end
 exitmsg="Movie ${title} has been successfully encoded."
