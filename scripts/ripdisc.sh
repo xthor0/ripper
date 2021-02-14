@@ -33,7 +33,7 @@ function _exit_err(){
 
 # ensure output directories exist
 discinfo_output_dir="${HOME}/discinfo"
-output_dir=/staging/rips
+output_dir=/storage/videos/rips
 encode_dir=/storage/videos/encoded
 completed_dir=/storage/videos/completed
 for directory in "${discinfo_output_dir}" "${output_dir}" "${encode_dir}" "${completed_dir}"; do
