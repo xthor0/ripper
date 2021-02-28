@@ -218,14 +218,14 @@ fi
 # 3840 (4k): qsv_h265 (takes longer, but saves some disk space)
 widthdigit=$(mediainfo "${newfile_name}" | grep ^Width | awk '{ print $3 }')
 case ${widthdigit} in
-    3) encoder="qsv_h265";;
-    *) encoder="qsv_h264";;
+    3) encoder="qsv_h265";preset='Roku 2160p60 4K HEVC Surround';;
+    *) encoder="qsv_h264";preset='Roku 1080p30 Surround';;
 esac
 
 # encode the file with HandBrakeCLI
 echo "Encoding with HandBrake (using ${encoder})..."
 log=$(mktemp -t handbrake.log.XXXX)
-flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -E ac3 -B 384 -6 5point1 -e ${encoder} --encoder-preset speed -q 21 -s scan --subtitle-burned --subtitle-forced -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
+flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -Z ${preset} -e ${encoder} --encoder-preset speed -s scan --subtitle-burned --subtitle-forced -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}
