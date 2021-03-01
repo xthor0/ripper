@@ -225,7 +225,7 @@ esac
 # encode the file with HandBrakeCLI
 echo "Encoding with HandBrake (using ${encoder})..."
 log=$(mktemp -t handbrake.log.XXXX)
-flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -Z ${preset} -e ${encoder} --encoder-preset speed -s scan --subtitle-burned --subtitle-forced -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
+flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -Z "${preset}" -e ${encoder} --encoder-preset speed -s scan --subtitle-burned --subtitle-forced -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}
