@@ -20,7 +20,7 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	# use mediainfo to determine resolution, and change encoder accordingly. 
 	# 1080 / 720: qsv_h264 (it's way faster)
 	# 3840 (4k): qsv_h265 (takes longer, but saves some disk space)
-	widthdigit=$(mediainfo "${newfile_name}" | grep ^Width | awk '{ print $3 }')
+	widthdigit=$(mediainfo "${inputfile}" | grep ^Width | awk '{ print $3 }')
 	case ${widthdigit} in
 		3) encoder="qsv_h265";preset='Roku 2160p60 4K HEVC Surround';;
 		*) encoder="qsv_h264";preset='Roku 1080p30 Surround';;
