@@ -28,7 +28,7 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	echo "Encoder: ${encoder}"
 	echo "Preset: ${preset}"
 	log=$(mktemp -t handbrake.log.XXXX)
-	echo | flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -Z ${preset} -e ${encoder} --encoder-preset speed -s scan --subtitle-burned --subtitle-forced -i "${inputfile}" -o "${output_file}" 2> ${log}
+	echo | flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -Z "${preset}" -e ${encoder} --encoder-preset speed -s scan --subtitle-burned --subtitle-forced -i "${inputfile}" -o "${output_file}" 2> ${log}
     if [ $? -eq 0 ]; then
         rm -f ${log}
     else
