@@ -213,19 +213,18 @@ if [ $? -ne 0 ]; then
     _exit_err
 fi
 
-# use mediainfo to determine resolution, and change encoder accordingly. 
-# 1080 / 720: qsv_h264 (it's way faster)
-# 3840 (4k): qsv_h265 (takes longer, but saves some disk space)
-widthdigit=$(mediainfo "${newfile_name}" | grep ^Width | awk '{ print $3 }')
+# use mediainfo to determine resolution, and change preset accordingly. 
+# anything that is not 4k gets encoded qsv_264. qsv_265 used for 4k, simply because it saves disk space
+widthdigit=$(mediainfo "${inputfile}" | grep ^Width | awk '{ print $3 }')
 case ${widthdigit} in
-    3) encoder="qsv_h265";preset='Roku 2160p60 4K HEVC Surround';;
-    *) encoder="qsv_h264";preset='Roku 1080p30 Surround';;
+    3) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv" ;;
+    *) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv" ;;
 esac
 
 # encode the file with HandBrakeCLI
 echo "Encoding with HandBrake (using ${encoder})..."
 log=$(mktemp -t handbrake.log.XXXX)
-flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -Z "${preset}" -e ${encoder} --encoder-preset speed -s scan --subtitle-burned --subtitle-forced -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
+flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file "${preset-import-file}" --preset "${preset}" -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}

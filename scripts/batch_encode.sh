@@ -17,13 +17,12 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	# remove the title
 	mkvpropedit "${inputfile}" -d title
 	
-	# use mediainfo to determine resolution, and change encoder accordingly. 
-	# 1080 / 720: qsv_h264 (it's way faster)
-	# 3840 (4k): qsv_h265 (takes longer, but saves some disk space)
+	# use mediainfo to determine resolution, and change preset accordingly. 
+	# anything that is not 4k gets encoded qsv_264. qsv_265 used for 4k, simply because it saves disk space
 	widthdigit=$(mediainfo "${inputfile}" | grep ^Width | awk '{ print $3 }')
 	case ${widthdigit} in
-		3) encoder="qsv_h265";preset='Roku 2160p60 4K HEVC Surround';;
-		*) encoder="qsv_h264";preset='Roku 1080p30 Surround';;
+		3) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv" ;;
+		*) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv" ;;
 	esac
 
 	# encode the file with HandBrakeCLI
@@ -32,15 +31,17 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	echo "Encoder: ${encoder}"
 	echo "Preset: ${preset}"
 	log=$(mktemp -t handbrake.log.XXXX)
-	echo | flatpak run --command=HandBrakeCLI fr.handbrake.ghb -m -Z "${preset}" -e ${encoder} --encoder-preset speed -s scan --subtitle-burned --subtitle-forced -i "${inputfile}" -o "${output_file}" 2> ${log}
+	echo | flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file "${preset-import-file}" --preset "${preset}" -i "${inputfile}" -o "${output_file}" 2> ${log}
     if [ $? -eq 0 ]; then
         rm -f ${log}
     else
         echo "Error - check ${log} for details."
     fi
 	end=$(date +%s)
-	diff=$(($start-$end))
-	echo "$(($diff / 60)) minutes and $(($diff % 60)) seconds elapsed."
+
+	# TODO: fix this math. This isn't working right.
+	diff=$((${end}-${start}}))
+	echo "$((${diff} / 60)) minutes and $((${diff} % 60)) seconds elapsed."
 done
 
 endDate=$(date)
