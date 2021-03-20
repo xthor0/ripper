@@ -200,11 +200,8 @@ fi
 # set the output file metadata title to match what we got from filebot. The metadata can be weird.
 echo "Determining how filebot named the file..."
 newfile="$(ls -Art "${output_dir}" | tail -n1)"
-newtitle="$(basename "${newfile}" .mkv)"
 newfile_name="${output_dir}/${newfile}"
-echo "New title: ${newtitle}"
 echo "Clearing mkv metadata (which can confuse Plex)..."
-#mkvpropedit "${newfile_name}" --edit info --set "title=${newtitle}"
 mkvpropedit "${newfile_name}" -d title
 if [ $? -ne 0 ]; then
     exitmsg="Something went wrong with mkvpropedit - exiting."
@@ -215,11 +212,22 @@ fi
 
 # use mediainfo to determine resolution, and change preset accordingly. 
 # anything that is not 4k gets encoded qsv_264. qsv_265 used for 4k, simply because it saves disk space
-widthdigit=$(mediainfo "${inputfile}" | grep ^Width | awk '{ print $3 }')
+widthdigit=$(mediainfo "${newfile_name}" | grep ^Width | awk '{ print $3 }')
 case ${widthdigit} in
     3) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv" ;;
     *) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv" ;;
 esac
+
+# if this is a 4k video, we need to handle the output files a little differently. we'll be encoding 1080p versions, too
+4k_filename="$(basename "${newfile}" .mkv) 4K.mkv"
+mv "${output_dir}/${newfile}" "${output_dir}/${4k_filename}"
+if [ $? -ne 0 ]; then
+    exitmsg="Unable to rename output file to 4k name - exiting."
+    echo ${exitmsg}
+    pushover_msg ${exitmsg}
+    _exit_err
+fi
+newfile_name="${output_dir}/${4k_filename}"
 
 # encode the file with HandBrakeCLI
 echo "Encoding with HandBrake (using ${encoder})..."
