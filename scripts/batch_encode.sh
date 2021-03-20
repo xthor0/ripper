@@ -46,7 +46,7 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	end=$(date +%s)
 
 	# TODO: fix this math. This isn't working right.
-	diff=$((${end}-${start}}))
+	diff=$((${end}-${start}))
 	echo "$((${diff} / 60)) minutes and $((${diff} % 60)) seconds elapsed."
 done
 
