@@ -214,25 +214,14 @@ fi
 # anything that is not 4k gets encoded qsv_264. qsv_265 used for 4k, simply because it saves disk space
 widthdigit=$(mediainfo "${newfile_name}" | grep ^Width | awk '{ print $3 }')
 case ${widthdigit} in
-    3) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv" ;;
-    *) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv" ;;
+    3) preset_import_file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv" ;;
+    *) preset_import_file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv" ;;
 esac
-
-# if this is a 4k video, we need to handle the output files a little differently. we'll be encoding 1080p versions, too
-4k_filename="$(basename "${newfile}" .mkv) 4K.mkv"
-mv "${output_dir}/${newfile}" "${output_dir}/${4k_filename}"
-if [ $? -ne 0 ]; then
-    exitmsg="Unable to rename output file to 4k name - exiting."
-    echo ${exitmsg}
-    pushover_msg ${exitmsg}
-    _exit_err
-fi
-newfile_name="${output_dir}/${4k_filename}"
 
 # encode the file with HandBrakeCLI
 echo "Encoding with HandBrake (using ${encoder})..."
 log=$(mktemp -t handbrake.log.XXXX)
-flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file "${preset-import-file}" --preset "${preset}" -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
+flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file "${preset_import_file}" --preset "${preset}" -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}
