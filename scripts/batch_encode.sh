@@ -1,7 +1,7 @@
 #!/bin/bash
 
 startDate=$(date)
-start=$(date +%s)
+fullStart=$(date +%s)
 
 # output dir for encoded files
 encode_dir=/storage/videos/encoded
@@ -14,6 +14,7 @@ fi
 
 log=$(mktemp -t makemkvcon.log.XXXX)
 find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
+	start=$(date +%s)
 	newfile=$(basename "$inputfile" .mkv)
     output_file="${encode_dir}/${newfile}${testfilename}.mkv"
 	if [ -f "${output_file}" ]; then
@@ -51,6 +52,8 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 done
 
 endDate=$(date)
+fullEnd=$(date +%s)
+fulldiff=$((${end} - ${start}))
 
 # pushover message
 test -f ${HOME}/.pushover-api-keys
@@ -58,7 +61,7 @@ if [ $? -eq 0 ]; then
 	# if I'm doing testing - I'm probably at the console. Don't pushover me.
 	if [ -z "${testmode}" ]; then
 		. ${HOME}/.pushover-api-keys
-		curl -s --form-string "token=${apitoken}" --form-string "user=${usertoken}" --form-string "message=Notification: Batch HandBrake job completed. :: Start: ${startDate} -- End: ${endDate}" https://api.pushover.net/1/messages.json		
+		curl -s --form-string "token=${apitoken}" --form-string "user=${usertoken}" --form-string "message=Notification: Batch HandBrake job completed. :: Start: ${startDate} -- End: ${endDate} :: $((${fulldiff} / 60)) minutes and $((${fulldiff} % 60)) seconds elapsed." https://api.pushover.net/1/messages.json		
 	fi
 fi
 
