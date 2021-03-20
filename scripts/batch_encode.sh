@@ -34,7 +34,6 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	# encode the file with HandBrakeCLI
 	echo "Source: ${inputfile}"
 	echo "Target: ${output_file}"
-	echo "Encoder: ${encoder}"
 	echo "Preset: ${preset}"
 	log=$(mktemp -t handbrake.log.XXXX)
 	echo | flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file "${preset_import_file}" --preset "${preset}" "${testmode}" -i "${inputfile}" -o "${output_file}" 2> ${log}
@@ -46,7 +45,7 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	end=$(date +%s)
 
 	# TODO: fix this math. This isn't working right.
-	diff=$((${end}-${start}))
+	diff=$((${end} - ${start}))
 	echo "$((${diff} / 60)) minutes and $((${diff} % 60)) seconds elapsed."
 done
 
