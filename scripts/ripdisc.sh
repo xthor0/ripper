@@ -201,6 +201,7 @@ fi
 echo "Determining how filebot named the file..."
 newfile="$(ls -Art "${output_dir}" | tail -n1)"
 newfile_name="${output_dir}/${newfile}"
+encode_file="$(basename "${newfile}" .mkv).mp4"
 echo "Clearing mkv metadata (which can confuse Plex)..."
 mkvpropedit "${newfile_name}" -d title
 if [ $? -ne 0 ]; then
@@ -221,7 +222,7 @@ esac
 # encode the file with HandBrakeCLI
 echo "Encoding with HandBrake (using ${encoder})..."
 log=$(mktemp -t handbrake.log.XXXX)
-flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file "${preset_import_file}" --preset "${preset}" -i "${newfile_name}" -o "${encode_dir}/${newfile}" 2> ${log}
+flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file "${preset_import_file}" --preset "${preset}" -i "${newfile_name}" -o "${encode_dir}/${encode_file}" 2> ${log}
 if [ $? -eq 0 ]; then
     echo "HandBrake encode successful."
     rm -f ${log}

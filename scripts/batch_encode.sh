@@ -16,7 +16,7 @@ log=$(mktemp -t makemkvcon.log.XXXX)
 find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	start=$(date +%s)
 	newfile=$(basename "$inputfile" .mkv)
-    output_file="${encode_dir}/${newfile}${testfilename}.mkv"
+    output_file="${encode_dir}/${newfile}${testfilename}.mp4"
 	if [ -f "${output_file}" ]; then
 		echo "Target already exists: ${output_file} -- skipping."
 		continue
