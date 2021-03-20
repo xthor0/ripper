@@ -1,6 +1,7 @@
 #!/bin/bash
 
 startDate=$(date)
+start=$(date +%s)
 
 # output dir for encoded files
 encode_dir=/storage/videos/encoded
@@ -54,6 +55,10 @@ endDate=$(date)
 # pushover message
 test -f ${HOME}/.pushover-api-keys
 if [ $? -eq 0 ]; then
+	if [ -n "${1}" ]; then
+		# if I'm doing testing - I'm probably at the console. Don't pushover me.
+		break
+	fi
     . ${HOME}/.pushover-api-keys
     curl -s --form-string "token=${apitoken}" --form-string "user=${usertoken}" --form-string "message=Notification: Batch HandBrake job completed. :: Start: ${startDate} -- End: ${endDate}" https://api.pushover.net/1/messages.json
 fi
