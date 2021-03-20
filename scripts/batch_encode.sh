@@ -8,12 +8,13 @@ encode_dir=/storage/videos/encoded
 # if testmode is enabled, only encode a couple of chapters (2-4)
 if [ -n "${1}" ]; then
 	testmode="-c 2-4"
+	testfilename="-test"
 fi
 
 log=$(mktemp -t makemkvcon.log.XXXX)
 find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	newfile=$(basename "$inputfile" .mkv)
-    output_file="${encode_dir}/${newfile}.mkv"
+    output_file="${encode_dir}/${newfile}${testfilename}.mkv"
 	if [ -f "${output_file}" ]; then
 		echo "Target already exists: ${output_file} -- skipping."
 		continue
