@@ -26,8 +26,8 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	# anything that is not 4k gets encoded qsv_264. qsv_265 used for 4k, simply because it saves disk space
 	widthdigit=$(mediainfo "${inputfile}" | grep ^Width | awk '{ print $3 }')
 	case ${widthdigit} in
-		3) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv" ;;
-		*) preset-import-file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv" ;;
+		3) preset_import_file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv" ;;
+		*) preset_import_file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv" ;;
 	esac
 
 	# encode the file with HandBrakeCLI
@@ -36,7 +36,7 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	echo "Encoder: ${encoder}"
 	echo "Preset: ${preset}"
 	log=$(mktemp -t handbrake.log.XXXX)
-	echo | flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file ${preset-import-file} --preset "${preset}" "${testmode}" -i "${inputfile}" -o "${output_file}" 2> ${log}
+	echo | flatpak run --command=HandBrakeCLI fr.handbrake.ghb --preset-import-file "${preset_import_file}" --preset "${preset}" "${testmode}" -i "${inputfile}" -o "${output_file}" 2> ${log}
     if [ $? -eq 0 ]; then
         rm -f ${log}
     else
