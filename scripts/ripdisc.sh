@@ -201,10 +201,6 @@ fi
 echo "Determining how filebot named the file..."
 newfile="$(ls -Art "${output_dir}" | tail -n1)"
 newfile_name="${output_dir}/${newfile}"
-### TODO
-### You can't use the mp4 container for h.265 HVEC.
-### Ugh. If I do mkv, will Roku have to transcode? Only one way to find out.
-#encode_file="$(basename "${newfile}" .mkv).mp4"
 echo "Clearing mkv metadata (which can confuse Plex)..."
 mkvpropedit "${newfile_name}" -d title
 if [ $? -ne 0 ]; then
