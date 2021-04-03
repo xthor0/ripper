@@ -16,11 +16,6 @@ log=$(mktemp -t makemkvcon.log.XXXX)
 find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	start=$(date +%s)
 	newfile=$(basename "$inputfile" .mkv)
-    output_file="${encode_dir}/${newfile}${testfilename}.mkv"
-	if [ -f "${output_file}" ]; then
-		echo "Target already exists: ${output_file} -- skipping."
-		continue
-	fi
 
 	# remove the title
 	mkvpropedit "${inputfile}" -d title
@@ -29,9 +24,15 @@ find . -maxdepth 1 -type f -iname "*.mkv" | while read inputfile; do
 	# anything that is not 4k gets encoded qsv_264. qsv_265 used for 4k, simply because it saves disk space
 	widthdigit=$(mediainfo "${inputfile}" | grep ^Width | awk '{ print $3 }')
 	case ${widthdigit} in
-		3) preset_import_file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv" ;;
-		*) preset_import_file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv" ;;
+		3) preset_import_file="$(dirname "$(readlink -f "$0")")/../presets/4k_qsv.json"; preset="4k_qsv"; extension="mkv" ;;
+		*) preset_import_file="$(dirname "$(readlink -f "$0")")/../presets/1080p_qsv.json"; preset="1080p_qsv"; extension="mp4" ;;
 	esac
+
+    output_file="${encode_dir}/${newfile}${testfilename}.${extension}"
+	if [ -f "${output_file}" ]; then
+		echo "Target already exists: ${output_file} -- skipping."
+		continue
+	fi
 
 	# encode the file with HandBrakeCLI
 	echo "Source: ${inputfile}"
