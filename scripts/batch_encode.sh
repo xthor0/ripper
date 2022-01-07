@@ -54,7 +54,7 @@ done
 
 endDate=$(date)
 fullEnd=$(date +%s)
-fulldiff=$((${end} - ${start}))
+fulldiff=$((${fullEnd} - ${fullStart}))
 
 # pushover message
 test -f ${HOME}/.pushover-api-keys

@@ -33,9 +33,9 @@ function _exit_err(){
 
 # ensure output directories exist
 discinfo_output_dir="${HOME}/discinfo"
-output_dir=/storage/videos/rips
-encode_dir=/storage/videos/encoded
-completed_dir=/storage/videos/completed
+output_dir=${HOME}/Videos/rips
+encode_dir=${HOME}/Videos/encoded
+completed_dir=${HOME}/Videos/completed
 for directory in "${discinfo_output_dir}" "${output_dir}" "${encode_dir}" "${completed_dir}"; do
     if [ ! -d "${directory}" ]; then
         echo "${directory} does not exist -- creating."
@@ -65,6 +65,14 @@ if [ $? -eq 0 ]; then
         cp /media/cdrom0/BDMV/META/DL/bdmt_eng.xml ${xmltemp}
         title=$(cat /media/cdrom0/BDMV/META/DL/bdmt_eng.xml | grep di:name | cut -d \> -f 2 | cut -d \< -f 1 | cut -d \- -f 1 | tr -d [:cntrl:])
         echo "Title retrieved from BDROM XML: ${title}"
+	# move the bdxml temp to a real file
+	bdmtxml="${HOME}/discinfo/${title}.xml"
+	if [ ! -f "${bdmtxml}" ]; then
+        	mv ${xmltemp} "${bdmtxml}"
+    		echo "BDMT XML saved to ${bdmtxml}"
+	else
+		echo "Errror: BDMT XML --NOT-- saved to ${xmltemp}"
+	fi
     else
         echo "bdmt_eng.xml does not exist."
     fi
@@ -90,20 +98,11 @@ fi
 # save the disc info we got from makemkv, but named so we can reference it
 discinfo_backup="${HOME}/discinfo/${title}.txt"
 if [ ! -f "${discinfo_backup}" ]; then
-	discinfo_backup="${HOME}/discinfo/${title}.txt"
+    discinfo_backup="${HOME}/discinfo/${title}.txt"
     mv ${discinfo} "${discinfo_backup}"
     discinfo="${discinfo_backup}"
 else
     echo "${discinfo_backup} already exists, keeping temp file ${discinfo}."
-fi
-
-# move the bdxml temp to a real file
-bdmtxml="${HOME}/discinfo/${title}.xml"
-if [ ! -f "${bdmtxml}" ]; then
-    mv ${xmltemp} "${bdmtxml}"
-    echo "BDMT XML saved to ${bdmtxml}"
-else
-    echo "BDMT XML saved to ${xmltemp}"
 fi
 
 # let's see if Java was able to determine what the title track of this disc is.
